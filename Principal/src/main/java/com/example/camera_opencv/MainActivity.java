@@ -37,18 +37,8 @@ public class MainActivity extends AppCompatActivity {
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
     ImageView vista;
+    Bitmap respaldo;
     ImageButton btnCamara, btnGaleria, btnGrayScale, btnGuardar;
-
-    private static String TAG = "MainActivity";
-
-    static{
-        if(OpenCVLoader.initDebug()) {
-            Log.d(TAG, "Carga correcta");
-        }else{
-            Log.d(TAG, ""+OpenCVLoader.initDebug());
-            Log.d(TAG, "Error al cargar");
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
                         InputStream imageStream = getContentResolver().openInputStream(selectedImage);
                         final Bitmap bmp = BitmapFactory.decodeStream(imageStream);
                         vista.setImageBitmap(bmp);
+                        respaldo = bmp;
                     } catch (Exception e) {
                         Toast.makeText(this, "Error al cargar imagen", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
@@ -127,12 +118,35 @@ public class MainActivity extends AppCompatActivity {
                         Bundle extras = data.getExtras();
                         Bitmap imageBitmap = (Bitmap) extras.get("data");
                         vista.setImageBitmap(imageBitmap);
+                        respaldo = imageBitmap;
                     } catch (Exception e) {
                         Toast.makeText(this, "Error al cargar imagen", Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
                     break;
             }
+        }
+    }
+
+    public void escalaDeGrises(){
+        try {
+            Mat rgb = new Mat();
+            Mat gray = new Mat();
+
+            Bitmap imageBitmat = ((BitmapDrawable) vista.getDrawable()).getBitmap();
+            int width = imageBitmat.getWidth();
+            int height = imageBitmat.getHeight();
+
+            Bitmap grayImage = Bitmap.createBitmap(width, height, imageBitmat.getConfig());
+
+            Utils.bitmapToMat(imageBitmat, rgb);
+            Imgproc.cvtColor(rgb, gray, Imgproc.COLOR_RGB2GRAY);
+            Utils.matToBitmap(gray, grayImage);
+
+            vista.setImageBitmap(grayImage);
+            respaldo = grayImage;
+        }catch (Exception e){
+            Toast.makeText(this, "Cargue primero una imagen", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -144,9 +158,9 @@ public class MainActivity extends AppCompatActivity {
 
             FileOutputStream outStream = null;
             File sdCard = Environment.getExternalStorageDirectory();
-            File dir = new File(sdCard.getAbsolutePath() + "/CamaraOpenCV_save");
+            File dir = new File(sdCard.getAbsolutePath() + "/CamaraOpenCV");
             dir.mkdirs();
-            String fileName = String.format("canara_%d.jpg", System.currentTimeMillis());
+            String fileName = String.format("%d.jpeg", System.currentTimeMillis());
             File outFile = new File(dir, fileName);
 
             try {
@@ -171,33 +185,16 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
                 Toast.makeText(this, "Error", Toast.LENGTH_SHORT).show();
             }
-        } catch (Exception e){
-            Toast.makeText(this, "Cargue primero una imagen", Toast.LENGTH_LONG).show();
-        }
-
-    }
-
-    public void escalaDeGrises(){
-        try {
-            Mat rgb = new Mat();
-            Mat gray = new Mat();
-            Bitmap imageBitmat = ((BitmapDrawable) vista.getDrawable()).getBitmap();
-            int width = imageBitmat.getWidth();
-            int height = imageBitmat.getHeight();
-
-            Bitmap grayImage = Bitmap.createBitmap(width,height,imageBitmat.getConfig());
-            Utils.bitmapToMat(imageBitmat,rgb);
-            Imgproc.cvtColor(rgb,gray, Imgproc.COLOR_RGB2GRAY);
-            Utils.matToBitmap(gray,grayImage);
-            vista.setImageBitmap(grayImage);
         }catch (Exception e){
             Toast.makeText(this, "Cargue primero una imagen", Toast.LENGTH_LONG).show();
         }
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        vista.setImageBitmap(respaldo);
     }
 
     @Override
